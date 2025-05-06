@@ -19,5 +19,5 @@ jobs:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
           git remote remove personal || true
-          git remote add personal https://JMJones716:${PERSONAL_PAT}@github.com/MyUsername/Staff-Website-MMP.git
+          git remote add personal https://JMJones716:${PERSONAL_PAT}@github.com/JMJones716/Staff-Website-MMP.git
           git push --mirror personal
