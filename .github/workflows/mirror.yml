@@ -1,52 +1,60 @@
 name: Mirror Repository to Personal Repo
+
 on:
   push:
     branches: [ main ]
+
 jobs:
   mirror:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
+
       - name: Debug - Clean PAT and show remote URL
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
-          # Clean the PAT to remove any trailing whitespace or newlines.
           PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
           echo "DEBUG: PAT_CLEAN length is ${#PAT_CLEAN}"
-          # Construct the remote URL using the cleaned PAT.
           REMOTE_URL="https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git"
           echo "DEBUG: Constructed remote URL is: ${REMOTE_URL}"
-          # Remove any existing remote named 'personal' (ignore errors)
-          echo "DEBUG: Removing remote 'personal' if it exists..."
           git remote remove personal || true
-          # Add the remote using the cleaned URL.
-          echo "DEBUG: Adding remote 'personal'..."
           git remote add personal "${REMOTE_URL}"
-          # List all remotes to verify.
-          echo "DEBUG: Listing current remotes:"
+          echo "DEBUG: Current remotes:"
           git remote -v
+
       - name: Verify repository access with curl
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
           PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
           echo "DEBUG: Testing repository access via API..."
-          # The -I flag makes curl return only the headers.
           curl -I -u "JMJones716:${PAT_CLEAN}" https://api.github.com/repos/JMJones716/Staff-Website-MMP
-      - name: Mirror repository to personal repo
+
+      - name: Verify remote accessibility via ls-remote
+        run: |
+          echo "DEBUG: Listing remote refs:"
+          git ls-remote personal
+
+      - name: Attempt mirror push (alternative methods)
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
-          # Clean the PAT again here to be sure.
           PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
           echo "Mirroring using cleaned PAT..."
           git remote remove personal || true
           git remote add personal https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git
-          # Print remotes for verification before pushing.
+          echo "DEBUG: Remotes before push:"
           git remote -v
-          echo "Pushing all refs via mirror..."
-          git push --mirror personal
+          echo "DEBUG: Attempting to push all branches..."
+          git push personal --all || exit 1
+          echo "DEBUG: Attempting to push all tags..."
+          git push personal --tags || exit 1
+          # If both of these succeed, the repository is receiving updates.
+          # Alternatively, you can try the mirror push:
+          # echo "DEBUG: Attempting mirror push..."
+          # git push --mirror personal
