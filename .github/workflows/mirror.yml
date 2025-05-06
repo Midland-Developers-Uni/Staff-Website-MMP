@@ -29,6 +29,14 @@ jobs:
           # List all remotes to verify.
           echo "DEBUG: Listing current remotes:"
           git remote -v
+      - name: Verify repository access with curl
+        env:
+          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
+        run: |
+          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
+          echo "DEBUG: Testing repository access via API..."
+          # The -I flag makes curl return only the headers.
+          curl -I -u "JMJones716:${PAT_CLEAN}" https://api.github.com/repos/JMJones716/Staff-Website-MMP
       - name: Mirror repository to personal repo
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
