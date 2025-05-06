@@ -1,0 +1,23 @@
+name: Mirror Repository to Personal Repo
+
+# Trigger the workflow whenever there’s a push on the main branch.
+on:
+  push:
+    branches: [ main ]  # Adjust if you wish to mirror a different branch
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure full repo history is available
+
+      - name: Mirror repository to personal repo
+        env:
+          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
+        run: |
+          git remote remove personal || true
+          git remote add personal https://JMJones716:${PERSONAL_PAT}@github.com/MyUsername/Staff-Website-MMP.git
+          git push --mirror personal
