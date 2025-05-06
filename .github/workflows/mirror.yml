@@ -2,7 +2,7 @@ name: Mirror Repository to Personal Repo
 
 on:
   push:
-    branches: [ main ]  # Adjust if you wish to mirror a different branch
+    branches: [ main ]  # Change if you want to mirror a different branch
 
 jobs:
   mirror:
@@ -12,53 +12,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Ensure full repo history is available
+          fetch-depth: 0  # Full history needed for --mirror
 
-      - name: Debug - Clean PAT and show remote URL
+      - name: Encode PAT securely
+        id: encode_pat
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
-          # Clean the PAT to remove any trailing whitespace or newlines.
-          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
-          echo "DEBUG: PAT_CLEAN length is ${#PAT_CLEAN}"
-          # Construct the remote URL.
-          REMOTE_URL="https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git"
-          echo "DEBUG: Constructed remote URL is: ${REMOTE_URL}"
-          # Remove any existing remote named 'personal'.
+          ENCODED_PAT=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['PERSONAL_PAT']))")
+          echo "ENCODED_PAT=${ENCODED_PAT}" >> $GITHUB_OUTPUT
+
+      - name: Debug - Add remote and show config
+        run: |
+          ENCODED_PAT="${{ steps.encode_pat.outputs.ENCODED_PAT }}"
+          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
+          echo "Adding remote: $REMOTE_URL"
           git remote remove personal || true
-          # Add the remote.
-          git remote add personal "${REMOTE_URL}"
-          # List current remotes.
-          echo "DEBUG: Current remotes:"
+          git remote add personal "$REMOTE_URL"
+          echo "Configured remotes:"
           git remote -v
 
-      - name: Debug - Verbose ls-remote on personal remote
-        env:
-          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
+      - name: Debug - Test remote connection
         run: |
-          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
-          echo "DEBUG: Running verbose ls-remote on personal remote..."
-          # This provides detailed output for the Git HTTPS call.
-          GIT_CURL_VERBOSE=1 GIT_TRACE=1 git ls-remote https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git
+          ENCODED_PAT="${{ steps.encode_pat.outputs.ENCODED_PAT }}"
+          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
+          echo "Testing git ls-remote..."
+          GIT_CURL_VERBOSE=1 GIT_TRACE=1 git ls-remote "$REMOTE_URL"
 
-      - name: Verify repository access with curl
+      - name: Verify API access with curl
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
-          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
-          echo "DEBUG: Testing repository access via API..."
-          # The -I flag returns just the headers.
-          curl -I -u "JMJones716:${PAT_CLEAN}" https://api.github.com/repos/JMJones716/Staff-Website-MMP
+          echo "Testing GitHub API access..."
+          curl -I -u "JMJones716:${PERSONAL_PAT}" https://api.github.com/repos/JMJones716/Staff-Website-MMP
 
-      - name: Mirror repository to personal repo
-        env:
-          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
+      - name: Push full mirror to personal repo
         run: |
-          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
-          echo "Mirroring using cleaned PAT..."
+          ENCODED_PAT="${{ steps.encode_pat.outputs.ENCODED_PAT }}"
+          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
+          echo "Pushing all refs to $REMOTE_URL"
           git remote remove personal || true
-          git remote add personal https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git
-          echo "DEBUG: Remotes before push:"
-          git remote -v
-          echo "Pushing all refs via mirror..."
+          git remote add personal "$REMOTE_URL"
           git push --mirror personal
