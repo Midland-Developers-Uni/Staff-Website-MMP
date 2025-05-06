@@ -2,7 +2,7 @@ name: Mirror Repository to Personal Repo
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ]  # Adjust if you wish to mirror a different branch
 
 jobs:
   mirror:
@@ -12,20 +12,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Ensure full repo history is available
 
       - name: Debug - Clean PAT and show remote URL
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
+          # Clean the PAT to remove any trailing whitespace or newlines.
           PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
           echo "DEBUG: PAT_CLEAN length is ${#PAT_CLEAN}"
+          # Construct the remote URL.
           REMOTE_URL="https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git"
           echo "DEBUG: Constructed remote URL is: ${REMOTE_URL}"
+          # Remove any existing remote named 'personal'.
           git remote remove personal || true
+          # Add the remote.
           git remote add personal "${REMOTE_URL}"
+          # List current remotes.
           echo "DEBUG: Current remotes:"
           git remote -v
+
+      - name: Debug - Verbose ls-remote on personal remote
+        env:
+          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
+        run: |
+          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
+          echo "DEBUG: Running verbose ls-remote on personal remote..."
+          # This provides detailed output for the Git HTTPS call.
+          GIT_CURL_VERBOSE=1 GIT_TRACE=1 git ls-remote https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git
 
       - name: Verify repository access with curl
         env:
@@ -33,14 +47,10 @@ jobs:
         run: |
           PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
           echo "DEBUG: Testing repository access via API..."
+          # The -I flag returns just the headers.
           curl -I -u "JMJones716:${PAT_CLEAN}" https://api.github.com/repos/JMJones716/Staff-Website-MMP
 
-      - name: Verify remote accessibility via ls-remote
-        run: |
-          echo "DEBUG: Listing remote refs:"
-          git ls-remote personal
-
-      - name: Attempt mirror push (alternative methods)
+      - name: Mirror repository to personal repo
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
@@ -50,11 +60,5 @@ jobs:
           git remote add personal https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git
           echo "DEBUG: Remotes before push:"
           git remote -v
-          echo "DEBUG: Attempting to push all branches..."
-          git push personal --all || exit 1
-          echo "DEBUG: Attempting to push all tags..."
-          git push personal --tags || exit 1
-          # If both of these succeed, the repository is receiving updates.
-          # Alternatively, you can try the mirror push:
-          # echo "DEBUG: Attempting mirror push..."
-          # git push --mirror personal
+          echo "Pushing all refs via mirror..."
+          git push --mirror personal
