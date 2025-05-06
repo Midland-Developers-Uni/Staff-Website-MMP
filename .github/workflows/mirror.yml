@@ -1,10 +1,7 @@
 name: Mirror Repository to Personal Repo
-
-# Trigger the workflow whenever there’s a push on the main branch.
 on:
   push:
-    branches: [ main ]  # Adjust if you wish to mirror a different branch
-
+    branches: [ main ]
 jobs:
   mirror:
     runs-on: ubuntu-latest
@@ -12,12 +9,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Ensure full repo history is available
-
+          fetch-depth: 0 
+      - name: Debug - Clean PAT and show remote URL
+        env:
+          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
+        run: |
+          # Clean the PAT to remove any trailing whitespace or newlines.
+          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
+          echo "DEBUG: PAT_CLEAN length is ${#PAT_CLEAN}"
+          # Construct the remote URL using the cleaned PAT.
+          REMOTE_URL="https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git"
+          echo "DEBUG: Constructed remote URL is: ${REMOTE_URL}"
+          # Remove any existing remote named 'personal' (ignore errors)
+          echo "DEBUG: Removing remote 'personal' if it exists..."
+          git remote remove personal || true
+          # Add the remote using the cleaned URL.
+          echo "DEBUG: Adding remote 'personal'..."
+          git remote add personal "${REMOTE_URL}"
+          # List all remotes to verify.
+          echo "DEBUG: Listing current remotes:"
+          git remote -v
       - name: Mirror repository to personal repo
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
         run: |
+          # Clean the PAT again here to be sure.
+          PAT_CLEAN=$(echo -n "${PERSONAL_PAT}")
+          echo "Mirroring using cleaned PAT..."
           git remote remove personal || true
-          git remote add personal https://JMJones716:${PERSONAL_PAT}@github.com/JMJones716/Staff-Website-MMP.git
+          git remote add personal https://JMJones716:${PAT_CLEAN}@github.com/JMJones716/Staff-Website-MMP.git
+          # Print remotes for verification before pushing.
+          git remote -v
+          echo "Pushing all refs via mirror..."
           git push --mirror personal
