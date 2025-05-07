@@ -4,36 +4,22 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'path/to/files/**'  # If you want to target specific files
+    # Uncomment and adjust if you want to target specific files
+    # paths:
+    #   - 'path/to/files/**'
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code from the org repo
+      - name: Checkout source repository
         uses: actions/checkout@v4
         with:
-          ref: main
+          fetch-depth: 0  # Get all history and tags
 
-      - name: Set up Git
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-      - name: Add personal repo remote
-        run: |
-          # Mask the PAT token to prevent leaks in logs
-          echo "::add-mask::${{ secrets.PERSONAL_PAT }}"
-          
-          # Set the URL for the personal repo using the token
-          git remote set-url origin "https://x-access-token:${{ secrets.PERSONAL_PAT }}@github.com/JMJones716/Staff-Website-MMP.git"
-          
-      - name: Debug Check remote URL
-        run: |
-          git remote -v
-
-      - name: Push to personal repo
-        run: |
-          git push origin main
+      - name: Push to personal repository
+        uses: pixta-dev/repository-mirroring-action@v1
+        with:
+          target_repo_url:
+            git@github.com:JMJones716/Staff-Website-MMP.git
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
