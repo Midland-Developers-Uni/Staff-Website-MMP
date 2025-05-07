@@ -2,19 +2,20 @@ name: Mirror Repository to Personal Repo
 
 on:
   push:
-    branches: [ main ]  # Change if you want to mirror a different branch
+    branches: [ main ]  # You can change this to your source branch
+  workflow_dispatch:     # Allows manual trigger from GitHub UI
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Full history needed for --mirror
+          fetch-depth: 0  # Required for full history mirroring
 
-      - name: Encode PAT securely
+      - name: Encode PAT for safe use in URL
         id: encode_pat
         env:
           PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
@@ -22,35 +23,33 @@ jobs:
           ENCODED_PAT=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['PERSONAL_PAT']))")
           echo "ENCODED_PAT=${ENCODED_PAT}" >> $GITHUB_OUTPUT
 
-      - name: Debug - Add remote and show config
-        run: |
-          ENCODED_PAT="${{ steps.encode_pat.outputs.ENCODED_PAT }}"
-          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
-          echo "Adding remote: $REMOTE_URL"
-          git remote remove personal || true
-          git remote add personal "$REMOTE_URL"
-          echo "Configured remotes:"
-          git remote -v
-
-      - name: Debug - Test remote connection
-        run: |
-          ENCODED_PAT="${{ steps.encode_pat.outputs.ENCODED_PAT }}"
-          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
-          echo "Testing git ls-remote..."
-          GIT_CURL_VERBOSE=1 GIT_TRACE=1 git ls-remote "$REMOTE_URL"
-
-      - name: Verify API access with curl
+      - name: Add remote and test access
         env:
-          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
+          ENCODED_PAT: ${{ steps.encode_pat.outputs.ENCODED_PAT }}
         run: |
-          echo "Testing GitHub API access..."
-          curl -I -u "JMJones716:${PERSONAL_PAT}" https://api.github.com/repos/JMJones716/Staff-Website-MMP
-
-      - name: Push full mirror to personal repo
-        run: |
-          ENCODED_PAT="${{ steps.encode_pat.outputs.ENCODED_PAT }}"
+          echo "::add-mask::$ENCODED_PAT"  # Prevent PAT from leaking into logs
           REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
-          echo "Pushing all refs to $REMOTE_URL"
+          echo "Using remote URL: $REMOTE_URL"
+          
+          # Clean any existing remote
+          git remote remove personal || true
+          
+          # Add new remote
+          git remote add personal "$REMOTE_URL"
+          
+          # Show configured remotes
+          git remote -v
+          
+          # Test access with ls-remote
+          echo "Testing git ls-remote..."
+          GIT_CURL_VERBOSE=1 GIT_TRACE=1 git ls-remote personal
+
+      - name: Push all refs to personal repo (mirror)
+        env:
+          ENCODED_PAT: ${{ steps.encode_pat.outputs.ENCODED_PAT }}
+        run: |
+          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
           git remote remove personal || true
           git remote add personal "$REMOTE_URL"
+          echo "Pushing --mirror to personal repo..."
           git push --mirror personal
