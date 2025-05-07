@@ -10,11 +10,28 @@ on:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    # Only run if not triggered by the GitHub Actions bot and not a workflow file change
+    if: github.actor != 'github-actions[bot]'
     steps:
       - name: Checkout source repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Get all history and tags
+      
+      # Step to exclude workflow files from mirroring
+      - name: Setup Git and exclude workflows
+        run: |
+          # Create a temporary directory for the filtered content
+          mkdir -p /tmp/filtered-repo
+          # Copy all files except .github/workflows to the temporary directory
+          rsync -av --exclude='.github/workflows/' . /tmp/filtered-repo/
+          # Remove everything from current directory
+          find . -mindepth 1 -not -path "./.git*" -delete
+          # Copy filtered content back
+          rsync -av /tmp/filtered-repo/ .
+          # Configure Git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
 
       - name: Push to personal repository
         uses: pixta-dev/repository-mirroring-action@v1
