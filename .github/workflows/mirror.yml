@@ -24,11 +24,12 @@ jobs:
 
     - name: Set up personal repo as remote
       run: |
-        # URL encode the PAT secret for use in the remote URL
-        ENCODED_PAT=$(echo "${{ secrets.PERSONAL_PAT }}" | jq -s -R -r @uri)
-        echo "::add-mask::$ENCODED_PAT"  # Mask the PAT in logs
-        # Set the remote URL to your personal repo (using the token for authentication)
-        git remote set-url origin https://JMJones716:$ENCODED_PAT@github.com/JMJones716/Staff-Website-MMP.git
+        # Remove newlines or extra characters if any
+        ENCODED_PAT="${{ secrets.PERSONAL_PAT }}"
+        echo "::add-mask::$ENCODED_PAT"  # Mask the PAT to prevent leaks
+
+        # Set the remote URL to your personal repo using the token
+        git remote set-url origin https://$ENCODED_PAT@github.com/JMJones716/Staff-Website-MMP.git
 
     - name: Push code to the personal repo
       run: |
