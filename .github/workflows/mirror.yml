@@ -1,41 +1,47 @@
 name: Mirror Organization Repo to Personal Repo
-
 on:
   push:
     branches:
       - main
     paths-ignore:
-      - '.github/workflows/**'  # Ignore changes to workflow files
+      - '.github/workflows/**'  # Ignore workflow files to prevent infinite loops
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
-    # Only run if not triggered by the GitHub Actions bot and not a workflow file change
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]'  # Additional protection against loops
     steps:
-      - name: Checkout source repository
+      - name: Checkout code from the org repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Get all history and tags
-      
-      # Step to exclude workflow files from mirroring
-      - name: Setup Git and exclude workflows
+          ref: main
+          
+      - name: Set up Git
         run: |
-          # Create a temporary directory for the filtered content
-          mkdir -p /tmp/filtered-repo
-          # Copy all files except .github/workflows to the temporary directory
-          rsync -av --exclude='.github/workflows/' . /tmp/filtered-repo/
-          # Remove everything from current directory
-          find . -mindepth 1 -not -path "./.git*" -delete
-          # Copy filtered content back
-          rsync -av /tmp/filtered-repo/ .
-          # Configure Git
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-      - name: Push to personal repository
-        uses: pixta-dev/repository-mirroring-action@v1
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
         with:
-          target_repo_url:
-            git@github.com:JMJones716/Staff-Website-MMP.git
-          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          
+      - name: Add personal repo remote
+        run: |
+          # Add your personal repo as a remote
+          git remote add personal git@github.com:JMJones716/Staff-Website-MMP.git
+          
+      - name: Debug Check remote URL
+        run: |
+          git remote -v
+          
+      - name: Create .gitignore for workflow files (if it doesn't exist)
+        run: |
+          # Create or modify .gitignore to exclude workflow files when pushing to personal repo
+          echo ".github/workflows/" >> .gitignore-personal
+          git config --local core.excludesFile .gitignore-personal
+          
+      - name: Push to personal repo
+        run: |
+          # Push to the personal remote, main branch
+          git push personal main
