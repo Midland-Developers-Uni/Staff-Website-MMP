@@ -20,6 +20,5 @@ jobs:
       - name: Push to personal repository
         uses: pixta-dev/repository-mirroring-action@v1
         with:
-          target_repo_url: >
-            git@github.com:JMJones716/Staff-Website-MMP.git
+          target_repo_url: "git@github.com:JMJones716/Staff-Website-MMP.git"
           ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
