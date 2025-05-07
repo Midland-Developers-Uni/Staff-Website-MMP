@@ -28,7 +28,7 @@ jobs:
           echo "::add-mask::${{ secrets.PERSONAL_PAT }}"
           
           # Set the URL for the personal repo using the token
-          git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_PAT }}@github.com/JMJones716/Staff-Website-MMP.git
+          git remote set-url origin "https://x-access-token:${{ secrets.PERSONAL_PAT }}@github.com/JMJones716/Staff-Website-MMP.git"
           
       - name: Debug Check remote URL
         run: |
