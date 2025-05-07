@@ -1,47 +1,25 @@
 name: Mirror Organization Repo to Personal Repo
+
 on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '.github/workflows/**'  # Ignore workflow files to prevent infinite loops
 
 jobs:
   mirror:
+    # Only run the job if the workflow is running in the org repo.
+    if: ${{ github.repository != 'JMJones716/Staff-Website-MMP' }}
     runs-on: ubuntu-latest
-    if: github.actor != 'github-actions[bot]'  # Additional protection against loops
+
     steps:
-      - name: Checkout code from the org repo
+      - name: Checkout source repository
         uses: actions/checkout@v4
         with:
-          ref: main
-          
-      - name: Set up Git
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          
-      - name: Setup SSH
-        uses: webfactory/ssh-agent@v0.8.0
+          fetch-depth: 0  # Get all history and tags
+
+      - name: Push to personal repository
+        uses: pixta-dev/repository-mirroring-action@v1
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          
-      - name: Add personal repo remote
-        run: |
-          # Add your personal repo as a remote
-          git remote add personal git@github.com:JMJones716/Staff-Website-MMP.git
-          
-      - name: Debug Check remote URL
-        run: |
-          git remote -v
-          
-      - name: Create .gitignore for workflow files (if it doesn't exist)
-        run: |
-          # Create or modify .gitignore to exclude workflow files when pushing to personal repo
-          echo ".github/workflows/" >> .gitignore-personal
-          git config --local core.excludesFile .gitignore-personal
-          
-      - name: Push to personal repo
-        run: |
-          # Push to the personal remote, main branch
-          git push personal main
+          target_repo_url: >
+            git@github.com:JMJones716/Staff-Website-MMP.git
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
