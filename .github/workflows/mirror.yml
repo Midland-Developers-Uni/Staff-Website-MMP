@@ -24,11 +24,13 @@ jobs:
 
       - name: Add personal repo remote
         run: |
-          # Ensure the PAT is correctly masked
+          # Mask the PAT token to prevent leaks in logs
           echo "::add-mask::${{ secrets.PERSONAL_PAT }}"
+          
+          # Set the URL for the personal repo using the token
           git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_PAT }}@github.com/JMJones716/Staff-Website-MMP.git
-
-      - name: Debug: Check remote URL
+          
+      - name: Debug Check remote URL
         run: |
           git remote -v
 
