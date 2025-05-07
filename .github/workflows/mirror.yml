@@ -1,55 +1,36 @@
-name: Mirror Repository to Personal Repo
+name: Mirror to Personal Repo
 
 on:
   push:
-    branches: [ main ]  # You can change this to your source branch
-  workflow_dispatch:     # Allows manual trigger from GitHub UI
+    branches:
+      - main
+    # Trigger on push to the main branch of the org repo
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # Required for full history mirroring
+    - name: Checkout code from the org repo
+      uses: actions/checkout@v4
+      with:
+        # Checkout the code from the repo where the push happened
+        ref: main
 
-      - name: Encode PAT for safe use in URL
-        id: encode_pat
-        env:
-          PERSONAL_PAT: ${{ secrets.PERSONAL_PAT }}
-        run: |
-          ENCODED_PAT=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['PERSONAL_PAT']))")
-          echo "ENCODED_PAT=${ENCODED_PAT}" >> $GITHUB_OUTPUT
+    - name: Set up Git
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
 
-      - name: Add remote and test access
-        env:
-          ENCODED_PAT: ${{ steps.encode_pat.outputs.ENCODED_PAT }}
-        run: |
-          echo "::add-mask::$ENCODED_PAT"  # Prevent PAT from leaking into logs
-          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
-          echo "Using remote URL: $REMOTE_URL"
-          
-          # Clean any existing remote
-          git remote remove personal || true
-          
-          # Add new remote
-          git remote add personal "$REMOTE_URL"
-          
-          # Show configured remotes
-          git remote -v
-          
-          # Test access with ls-remote
-          echo "Testing git ls-remote..."
-          GIT_CURL_VERBOSE=1 GIT_TRACE=1 git ls-remote personal
+    - name: Set up personal repo as remote
+      run: |
+        # URL encode the PAT secret for use in the remote URL
+        ENCODED_PAT=$(echo "${{ secrets.PERSONAL_PAT }}" | jq -s -R -r @uri)
+        echo "::add-mask::$ENCODED_PAT"  # Mask the PAT in logs
+        # Set the remote URL to your personal repo (using the token for authentication)
+        git remote set-url origin https://JMJones716:$ENCODED_PAT@github.com/JMJones716/Staff-Website-MMP.git
 
-      - name: Push all refs to personal repo (mirror)
-        env:
-          ENCODED_PAT: ${{ steps.encode_pat.outputs.ENCODED_PAT }}
-        run: |
-          REMOTE_URL="https://JMJones716:${ENCODED_PAT}@github.com/JMJones716/Staff-Website-MMP.git"
-          git remote remove personal || true
-          git remote add personal "$REMOTE_URL"
-          echo "Pushing --mirror to personal repo..."
-          git push --mirror personal
+    - name: Push code to the personal repo
+      run: |
+        # Push the changes to the personal repo's main branch
+        git push origin main
