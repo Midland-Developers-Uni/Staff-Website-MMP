@@ -1,37 +1,37 @@
-name: Mirror to Personal Repo
+name: Mirror Organization Repo to Personal Repo
 
 on:
   push:
     branches:
       - main
-    # Trigger on push to the main branch of the org repo
+    paths:
+      - 'path/to/files/**'  # If you want to target specific files
 
 jobs:
   mirror:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code from the org repo
-      uses: actions/checkout@v4
-      with:
-        # Checkout the code from the repo where the push happened
-        ref: main
+      - name: Checkout code from the org repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
 
-    - name: Set up Git
-      run: |
-        git config user.name "github-actions"
-        git config user.email "github-actions@github.com"
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
-    - name: Set up personal repo as remote
-      run: |
-        # Remove newlines or extra characters if any
-        ENCODED_PAT="${{ secrets.PERSONAL_PAT }}"
-        echo "::add-mask::$ENCODED_PAT"  # Mask the PAT to prevent leaks
+      - name: Add personal repo remote
+        run: |
+          # Ensure the PAT is correctly masked
+          echo "::add-mask::${{ secrets.PERSONAL_PAT }}"
+          git remote set-url origin https://x-access-token:${{ secrets.PERSONAL_PAT }}@github.com/JMJones716/Staff-Website-MMP.git
 
-        # Set the remote URL to your personal repo using the token
-        git remote set-url origin https://$ENCODED_PAT@github.com/JMJones716/Staff-Website-MMP.git
+      - name: Debug: Check remote URL
+        run: |
+          git remote -v
 
-    - name: Push code to the personal repo
-      run: |
-        # Push the changes to the personal repo's main branch
-        git push origin main
+      - name: Push to personal repo
+        run: |
+          git push origin main
