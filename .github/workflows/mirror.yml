@@ -4,9 +4,8 @@ on:
   push:
     branches:
       - main
-    # Uncomment and adjust if you want to target specific files
-    # paths:
-    #   - 'path/to/files/**'
+    paths-ignore:
+      - '.github/workflows/**'  # Ignore changes to workflow files
 
 jobs:
   mirror:
