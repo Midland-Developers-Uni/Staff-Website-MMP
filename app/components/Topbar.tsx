@@ -4,12 +4,8 @@ import "./topbarStyles.css";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 
-// Interface removed since we're not using the options prop anymore
-interface TopbarProps {
-  // No props needed
-}
-
-const Topbar: React.FC<TopbarProps> = () => {
+// Removed empty interface since no props are needed
+const Topbar: React.FC = () => {
     const { darkMode, toggleDarkMode } = useTheme();
     const { isAuthenticated, logout } = useAuth();
     const modeClass = darkMode ? "topbar-dark" : "topbar-light";
@@ -32,7 +28,7 @@ const Topbar: React.FC<TopbarProps> = () => {
                                 Logout
                             </button>
                         </>
-                    ) : (<></>)}
+                    ) : null}
                 </nav>
                 <button onClick={toggleDarkMode} className="nav-link">Toggle Dark Mode</button>
             </div>

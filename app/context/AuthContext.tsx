@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { getCookie } from "cookies-next"; // Removed unused imports
 import InactivityModal from "../components/InactivityModal";
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  // Function to handle user activity
-  const handleUserActivity = () => {
+  // Function to handle user activity - wrapped in useCallback to prevent recreating on every render
+  const handleUserActivity = useCallback(() => {
     userActivityRef.current = true;
     
     // If inactivity modal is shown, hide it and reset the countdown
@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }, 1000);
     }, INACTIVITY_TIMEOUT);
-  };
+  }, [showInactivityModal]); // Dependencies for useCallback
   
   // Function to handle staying logged in
   const handleStayLoggedIn = async () => {
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   // Function to handle logout
-  const logout = () => {
+  const logout = useCallback(() => {
     // Clear any timers
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
@@ -199,7 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     // Redirect to login page
     router.push('/');
-  };
+  }, [router]); // Dependencies for useCallback
   
   // Check authentication status on component mount
   useEffect(() => {
@@ -327,7 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       clearInterval(tokenRefreshInterval);
     };
-  }, [isAuthenticated, handleUserActivity]); // Added handleUserActivity to dependencies
+  }, [isAuthenticated, handleUserActivity]); // handleUserActivity is now memoized with useCallback
   
   // Create the context value object
   const contextValue: AuthContextType = {
