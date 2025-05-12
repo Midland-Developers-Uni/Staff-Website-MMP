@@ -10,7 +10,7 @@ interface EventCheck {
   eventId: number;
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let connection;
   
   try {
@@ -34,7 +34,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       );
     }
 
-    const eventId = parseInt(params.id);
+    // Await params (Next.js 15 breaking change)
+    const { id } = await params;
+    const eventId = parseInt(id);
     
     // Parse the request body
     const eventData = await request.json();
@@ -130,7 +132,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let connection;
   
   try {
@@ -163,7 +165,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       );
     }
 
-    const eventId = parseInt(params.id);
+    // Await params (Next.js 15 breaking change)
+    const { id } = await params;
+    const eventId = parseInt(id);
 
     // Connect to database
     connection = await mysql.createConnection({
