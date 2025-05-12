@@ -10,7 +10,10 @@
   },
   "dependencies": {
     "argon2": "^0.43.0",
+    "cookies-next": "^5.1.0",
     "dotenv": "^16.5.0",
+    "jose": "^6.0.11",
+    "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.1",
     "next": "15.3.1",
     "react": "^19.0.0",
@@ -19,6 +22,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/mysql": "^2.15.27",
     "@types/node": "^20",
     "@types/react": "^19",

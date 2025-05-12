@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as mysql from 'mysql2/promise';
 import * as argon2 from 'argon2';
+import * as jwt from 'jsonwebtoken';
 
 // Define interfaces for our data types
 interface StaffMember {
@@ -15,6 +16,11 @@ interface StaffMember {
   last_login: string | null;
   [key: string]: unknown; // Allow for additional properties
 }
+
+// JWT secret from environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'midland-developers-secret-key';
+// JWT expiration time - 5 minutes (to allow for the 4-minute inactivity + 1-minute countdown)
+const JWT_EXPIRATION = '5m';
 
 export async function POST(request: Request) {
   let connection;
@@ -82,15 +88,44 @@ export async function POST(request: Request) {
     
     await connection.end();
     
-    // Exclude password from response (using rest operator)
+    // Exclude password from response and JWT payload
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: passwordField, ...staffWithoutPassword } = staff;
     
-    return NextResponse.json({ 
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: staff.id,
+        email: staff.email,
+        firstname: staff.firstname,
+        surname: staff.surname,
+        accessLevel: staff.accessLevel,
+        // Add any other data you want in the token
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRATION }
+    );
+    
+    // Create the response
+    const response = NextResponse.json({ 
       success: true, 
       staff: staffWithoutPassword,
-      subjects: subjectRows
+      subjects: subjectRows,
+      token
     });
+    
+    // Set the cookie in the response
+    response.cookies.set({
+      name: 'auth_token',
+      value: token,
+      maxAge: 5 * 60, // 5 minutes
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    return response;
     
   } catch (error) {
     console.error('Authentication error:', error);

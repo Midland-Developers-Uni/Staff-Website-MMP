@@ -4,7 +4,6 @@
     align-items: center;
     justify-content: space-between;
     backdrop-filter: blur(10px);
-
 }
 
 .topbar-dark {
@@ -26,6 +25,9 @@
 
 .topbar-side-right {
     text-align: right;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
 }
 
 .topbar-title {
@@ -43,4 +45,19 @@
     color: inherit;
     text-decoration: none;
     margin: 0 0.5rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.nav-link:hover {
+    background-color: rgba(150, 150, 150, 0.2);
+}
+
+.logout-link {
+    font-weight: 500;
 }

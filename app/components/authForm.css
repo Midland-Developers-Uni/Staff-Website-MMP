@@ -201,6 +201,14 @@
   cursor: not-allowed;
 }
 
+.auth-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 70vh;
+  font-size: 1.5rem;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

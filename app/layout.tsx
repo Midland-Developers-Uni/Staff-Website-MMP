@@ -1,6 +1,7 @@
 import Topbar from './components/Topbar';
 import './globals.css';
 import { ThemeProvider } from "./context/ThemeContext";
+import { AuthProvider } from "./context/AuthContext";
 import ClientThemeSetter from "./components/ClientThemeSetter";
 
 export default function RootLayout({
@@ -16,9 +17,11 @@ export default function RootLayout({
             <head />
             <body>
                 <ThemeProvider>
-                    <ClientThemeSetter/>
-                    <Topbar options={options} />
-                    {children}
+                    <AuthProvider>
+                        <ClientThemeSetter/>
+                        <Topbar options={options} />
+                        {children}
+                    </AuthProvider>
                 </ThemeProvider>
             </body>
         </html>

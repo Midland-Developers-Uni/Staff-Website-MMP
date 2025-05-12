@@ -1,10 +1,15 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/navigation";
 import "./authForm.css";
 
 const AuthForm: React.FC = () => {
   const { darkMode } = useTheme();
+  const { isAuthenticated, isLoading, login } = useAuth();
+  const router = useRouter();
+  
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -25,7 +30,14 @@ const AuthForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      router.push('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   // Special handler for token field to format as xxxx-xxxx-xxxx-xxxx
   const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,36 +158,49 @@ const AuthForm: React.FC = () => {
     setErrors(newErrors);
 
     if (valid) {
-      setIsLoading(true);
+      setIsFormSubmitting(true);
       try {
-        // Call API route
-        const endpoint = isSignup ? '/api/auth/register' : '/api/auth/login';
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            token: isSignup ? formData.token : undefined,
-            firstname: isSignup ? formData.firstname : undefined,
-            surname: isSignup ? formData.surname : undefined,
-          }),
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.message || 'Authentication failed');
+        if (isSignup) {
+          // Handle signup
+          const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Important for cookies
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password,
+              token: formData.token,
+              firstname: formData.firstname,
+              surname: formData.surname,
+            }),
+          });
+          
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.message || 'Registration failed');
+          }
+          
+          // After successful registration, login
+          const loginResult = await login(formData.email, formData.password);
+          
+          if (!loginResult.success) {
+            throw new Error(loginResult.message || 'Login after registration failed');
+          }
+          
+          // Redirect will happen in the useEffect watching isAuthenticated
+        } else {
+          // Handle login using the context
+          const result = await login(formData.email, formData.password);
+          
+          if (!result.success) {
+            throw new Error(result.message || 'Authentication failed');
+          }
+          
+          // Redirect will happen in the useEffect watching isAuthenticated
         }
-
-        // Handle successful authentication
-        console.log('Authentication successful', data);
-        
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
-        
       } catch (error) {
         console.error('Authentication error:', error);
         setErrors(prev => ({
@@ -183,7 +208,7 @@ const AuthForm: React.FC = () => {
           form: error instanceof Error ? error.message : 'Authentication failed'
         }));
       } finally {
-        setIsLoading(false);
+        setIsFormSubmitting(false);
       }
     }
   };
@@ -210,6 +235,11 @@ const AuthForm: React.FC = () => {
     });
   };
 
+  // If authentication is loading or already authenticated, show loading
+  if (isLoading || (isAuthenticated && !isFormSubmitting)) {
+    return <div className="auth-loading">Loading...</div>;
+  }
+
   return (
     <div className={`auth-container ${darkMode ? "dark" : "light"}`}>
       <div className="auth-form-wrapper">
@@ -226,7 +256,7 @@ const AuthForm: React.FC = () => {
                 value={formData.token}
                 onChange={handleTokenChange}
                 className={errors.token ? "error" : ""}
-                disabled={isLoading}
+                disabled={isFormSubmitting}
                 maxLength={19} // xxxx-xxxx-xxxx-xxxx = 19 chars
               />
               {errors.token && <span className="error-message">{errors.token}</span>}
@@ -241,7 +271,7 @@ const AuthForm: React.FC = () => {
               value={formData.email}
               onChange={handleChange}
               className={errors.email ? "error" : ""}
-              disabled={isLoading}
+              disabled={isFormSubmitting}
             />
             {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
@@ -256,7 +286,7 @@ const AuthForm: React.FC = () => {
                   value={formData.firstname}
                   onChange={handleChange}
                   className={errors.firstname ? "error" : ""}
-                  disabled={isLoading}
+                  disabled={isFormSubmitting}
                 />
                 {errors.firstname && <span className="error-message">{errors.firstname}</span>}
               </div>
@@ -268,7 +298,7 @@ const AuthForm: React.FC = () => {
                   value={formData.surname}
                   onChange={handleChange}
                   className={errors.surname ? "error" : ""}
-                  disabled={isLoading}
+                  disabled={isFormSubmitting}
                 />
                 {errors.surname && <span className="error-message">{errors.surname}</span>}
               </div>
@@ -283,7 +313,7 @@ const AuthForm: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               className={errors.password ? "error" : ""}
-              disabled={isLoading}
+              disabled={isFormSubmitting}
             />
             <button 
               type="button"
@@ -292,7 +322,7 @@ const AuthForm: React.FC = () => {
               onMouseUp={() => setShowPassword(false)}
               onMouseLeave={() => setShowPassword(false)}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              disabled={isLoading}
+              disabled={isFormSubmitting}
             >
               {showPassword ? (
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -319,7 +349,7 @@ const AuthForm: React.FC = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 className={errors.confirmPassword ? "error" : ""}
-                disabled={isLoading}
+                disabled={isFormSubmitting}
               />
               <button 
                 type="button"
@@ -328,7 +358,7 @@ const AuthForm: React.FC = () => {
                 onMouseUp={() => setShowConfirmPassword(false)}
                 onMouseLeave={() => setShowConfirmPassword(false)}
                 aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
-                disabled={isLoading}
+                disabled={isFormSubmitting}
               >
                 {showConfirmPassword ? (
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -349,10 +379,10 @@ const AuthForm: React.FC = () => {
 
           <button 
             type="submit" 
-            className={`auth-button ${isLoading ? 'loading' : ''}`}
-            disabled={isLoading}
+            className={`auth-button ${isFormSubmitting ? 'loading' : ''}`}
+            disabled={isFormSubmitting}
           >
-            {isLoading ? 'Processing...' : isSignup ? 'Create Account' : 'Login'}
+            {isFormSubmitting ? 'Processing...' : isSignup ? 'Create Account' : 'Login'}
           </button>
           
           <div className="auth-links">
@@ -361,7 +391,7 @@ const AuthForm: React.FC = () => {
               type="button" 
               className="mode-toggle" 
               onClick={toggleFormMode}
-              disabled={isLoading}
+              disabled={isFormSubmitting}
             >
               {isSignup ? "Already have an account? Login" : "New staff member? Create Account"}
             </button>

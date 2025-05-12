@@ -2,6 +2,7 @@
 import React from "react";
 import "./topbarStyles.css";
 import { useTheme } from "../context/ThemeContext";
+import { useAuth } from "../context/AuthContext";
 
 interface TopbarOptions {
     loggedIn: boolean;
@@ -12,8 +13,8 @@ interface TopbarProps {
 }
 
 const Topbar: React.FC<TopbarProps> = ({ options }) => {
-    const { loggedIn } = options;
     const { darkMode, toggleDarkMode } = useTheme();
+    const { isAuthenticated, user, logout } = useAuth();
     const modeClass = darkMode ? "topbar-dark" : "topbar-light";
 
     return (
@@ -25,14 +26,14 @@ const Topbar: React.FC<TopbarProps> = ({ options }) => {
             </div>
             <div className="topbar-side topbar-side-right">
                 <nav>
-                    {loggedIn ? (
+                    {isAuthenticated ? (
                         <>
                             <a href="/dashboard" className="nav-link">
                                 Dashboard
                             </a>
-                            <a href="/logout" className="nav-link">
+                            <button onClick={logout} className="nav-link logout-link">
                                 Logout
-                            </a>
+                            </button>
                         </>
                     ) : (<></>)}
                 </nav>

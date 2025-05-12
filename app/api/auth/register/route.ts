@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as mysql from 'mysql2/promise';
 import * as argon2 from 'argon2';
+import * as jwt from 'jsonwebtoken';
 
 // Define interfaces for our data types
 interface StaffMember {
@@ -28,6 +29,11 @@ interface Token {
   used_at: string | null;
   [key: string]: unknown; // Allow for additional properties
 }
+
+// JWT secret from environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'midland-developers-secret-key';
+// JWT expiration time - 5 minutes (to allow for the 4-minute inactivity + 1-minute countdown)
+const JWT_EXPIRATION = '5m';
 
 export async function POST(request: Request) {
   let connection;
@@ -156,11 +162,39 @@ export async function POST(request: Request) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: passwordField, ...staffWithoutPassword } = staff;
     
-    return NextResponse.json({ 
+    // Generate JWT token
+    const jwtToken = jwt.sign(
+      { 
+        userId: staff.id,
+        email: staff.email,
+        firstname: staff.firstname,
+        surname: staff.surname,
+        accessLevel: staff.accessLevel,
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRATION }
+    );
+    
+    // Create the response
+    const response = NextResponse.json({ 
       success: true, 
       message: 'Account created successfully',
-      staff: staffWithoutPassword
+      staff: staffWithoutPassword,
+      token: jwtToken
     });
+    
+    // Set the cookie in the response
+    response.cookies.set({
+      name: 'auth_token',
+      value: jwtToken,
+      maxAge: 5 * 60, // 5 minutes
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    return response;
     
   } catch (error) {
     console.error('Registration error:', error);

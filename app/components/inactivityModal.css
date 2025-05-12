@@ -1,0 +1,140 @@
+.inactivity-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.inactivity-modal-overlay.dark {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+.inactivity-modal-overlay.light {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.inactivity-modal {
+  width: 90%;
+  max-width: 500px;
+  padding: 2rem;
+  border-radius: 8px;
+  animation: slideIn 0.3s ease-in-out;
+  text-align: center;
+}
+
+.inactivity-modal-overlay.dark .inactivity-modal {
+  background-color: rgba(30, 30, 30, 0.95);
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.inactivity-modal-overlay.light .inactivity-modal {
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #000030;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.inactivity-modal h2 {
+  margin-top: 0;
+  font-size: 1.8rem;
+}
+
+.inactivity-modal p {
+  margin-bottom: 1.5rem;
+  font-size: 1.1rem;
+}
+
+.countdown {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #e74c3c;
+}
+
+.countdown-progress {
+  width: 100%;
+  height: 8px;
+  background-color: rgba(150, 150, 150, 0.3);
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+}
+
+.countdown-bar {
+  height: 100%;
+  background-color: #e74c3c;
+  border-radius: 4px;
+  transition: width 1s linear;
+}
+
+.inactivity-modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.stay-button, .logout-button {
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.3s, transform 0.1s;
+}
+
+.stay-button {
+  background-color: #3498db;
+  color: white;
+}
+
+.stay-button:hover {
+  background-color: #2980b9;
+}
+
+.logout-button {
+  background-color: transparent;
+}
+
+.inactivity-modal-overlay.dark .logout-button {
+  color: #ccc;
+  border: 1px solid #555;
+}
+
+.inactivity-modal-overlay.light .logout-button {
+  color: #555;
+  border: 1px solid #ccc;
+}
+
+.logout-button:hover {
+  background-color: rgba(150, 150, 150, 0.2);
+}
+
+.stay-button:active, .logout-button:active {
+  transform: scale(0.98);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
