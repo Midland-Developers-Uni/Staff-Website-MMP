@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import TokenGenerationModal from "../components/TokenGenerationModal";
-import "../dashboard/dashboard.css";
+import EventModal from "../components/EventModal";
+import "./dashboard.css";
 
 interface User {
   userId: number;
@@ -24,7 +25,7 @@ interface Event {
   staffName: string;
   staffId: number;
   subjects: { id: number; name: string; code: string; }[];
-  signUpPercentage: number;
+  signUpPercentage?: number; // Make this optional
 }
 
 type SortField = 'eventId' | 'eventName' | 'location' | 'studentsSignedUp' | 'totalSpaces' | 'startTime' | 'endTime' | 'staffName';
@@ -43,6 +44,11 @@ export default function DashboardContent() {
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [sortField, setSortField] = useState<SortField>('startTime');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  
+  // Event modal state
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | undefined>(undefined);
+  const [eventModalMode, setEventModalMode] = useState<'create' | 'edit' | 'view'>('view');
 
   useEffect(() => {
     // Get user data from the parent ProtectedRoute component
@@ -178,6 +184,72 @@ export default function DashboardContent() {
     }
   };
 
+  const handleEventRowClick = (event: Event) => {
+    setSelectedEvent(event);
+    setEventModalMode('view');
+    setIsEventModalOpen(true);
+  };
+
+  const handleCreateEvent = () => {
+    setSelectedEvent(undefined);
+    setEventModalMode('create');
+    setIsEventModalOpen(true);
+  };
+
+  const handleEditEvent = (event: Event) => {
+    setSelectedEvent(event);
+    setEventModalMode('edit');
+    setIsEventModalOpen(true);
+  };
+
+  const handleSaveEvent = async (eventData: Event) => {
+    try {
+      let url = '/api/events';
+      let method = 'POST';
+      
+      if (eventModalMode === 'edit' && selectedEvent?.eventId) {
+        url = `/api/events/${selectedEvent.eventId}`;
+        method = 'PUT';
+      }
+      
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(eventData),
+      });
+
+      if (response.ok) {
+        fetchEvents(); // Refresh the events list
+      } else {
+        const errorData = await response.json();
+        console.error('Error saving event:', errorData.message);
+      }
+    } catch (error) {
+      console.error('Error saving event:', error);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: number) => {
+    try {
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        fetchEvents(); // Refresh the events list
+      } else {
+        const errorData = await response.json();
+        console.error('Error deleting event:', errorData.message);
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+    }
+  };
+
   return (
     <div className="dashboard-container">
       <h1>Welcome to the Staff Dashboard</h1>
@@ -188,35 +260,48 @@ export default function DashboardContent() {
             <h2>Welcome, {user.firstname} {user.surname}</h2>
             <div className="user-details">
               <p className="user-role">Role: {user.accessLevel}</p>
-              {user.accessLevel === 'admin' && (
-                <div className="admin-controls">
+              
+              <div className="dashboard-actions">
+                {user.accessLevel === 'admin' && (
                   <div className="token-generation-section">
-                    <h3>Generate Staff Account Token</h3>
-                    <div className="token-controls">
-                      <div className="lifespan-selector">
-                        <label htmlFor="token-lifespan">Token Lifespan:</label>
-                        <select 
-                          id="token-lifespan" 
-                          value={tokenLifespan} 
-                          onChange={(e) => setTokenLifespan(e.target.value as '1d' | '3d' | '7d')}
+                    <h3>Admin Actions</h3>
+                    <div className="admin-buttons">
+                      <div className="token-controls">
+                        <div className="lifespan-selector">
+                          <label htmlFor="token-lifespan">Token Lifespan:</label>
+                          <select 
+                            id="token-lifespan" 
+                            value={tokenLifespan} 
+                            onChange={(e) => setTokenLifespan(e.target.value as '1d' | '3d' | '7d')}
+                            disabled={isGeneratingToken}
+                          >
+                            <option value="1d">1 Day</option>
+                            <option value="3d">3 Days</option>
+                            <option value="7d">7 Days</option>
+                          </select>
+                        </div>
+                        <button 
+                          className="generate-token-btn"
+                          onClick={handleGenerateToken}
                           disabled={isGeneratingToken}
                         >
-                          <option value="1d">1 Day</option>
-                          <option value="3d">3 Days</option>
-                          <option value="7d">7 Days</option>
-                        </select>
+                          {isGeneratingToken ? 'Generating...' : 'Generate Token'}
+                        </button>
                       </div>
-                      <button 
-                        className="generate-token-btn"
-                        onClick={handleGenerateToken}
-                        disabled={isGeneratingToken}
-                      >
-                        {isGeneratingToken ? 'Generating...' : 'Generate Token'}
-                      </button>
                     </div>
                   </div>
+                )}
+                
+                <div className="event-actions-section">
+                  <h3>Event Management</h3>
+                  <button 
+                    className="create-event-btn"
+                    onClick={handleCreateEvent}
+                  >
+                    Create New Event
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -256,16 +341,17 @@ export default function DashboardContent() {
                       End Time {renderSortIcon('endTime')}
                     </th>
                     <th>Subjects</th>
+                    {user?.accessLevel === 'admin' && <th>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {sortedEvents.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="no-events">No events found</td>
+                      <td colSpan={user?.accessLevel === 'admin' ? 10 : 9} className="no-events">No events found</td>
                     </tr>
                   ) : (
                     sortedEvents.map((event) => (
-                      <tr key={event.eventId} className="event-row">
+                      <tr key={event.eventId} className="event-row" onClick={() => handleEventRowClick(event)}>
                         <td>{event.eventId}</td>
                         <td className="event-name-cell">
                           <div className="event-name">{event.eventName}</div>
@@ -298,6 +384,19 @@ export default function DashboardContent() {
                             ))}
                           </div>
                         </td>
+                        {user?.accessLevel === 'admin' && (
+                          <td>
+                            <button 
+                              className="edit-event-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditEvent(event);
+                              }}
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -313,6 +412,15 @@ export default function DashboardContent() {
         onClose={() => setIsTokenModalOpen(false)}
         token={generatedToken || undefined}
         expiresAt={tokenExpiration || undefined}
+      />
+      
+      <EventModal
+        isOpen={isEventModalOpen}
+        onClose={() => setIsEventModalOpen(false)}
+        event={selectedEvent}
+        onSave={handleSaveEvent}
+        onDelete={handleDeleteEvent}
+        mode={eventModalMode}
       />
     </div>
   );

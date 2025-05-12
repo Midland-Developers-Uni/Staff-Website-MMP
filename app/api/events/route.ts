@@ -128,3 +128,116 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  let connection;
+  
+  try {
+    // Get the token from cookies
+    const token = request.cookies.get('auth_token')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    // Verify the token
+    try {
+      jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+    } catch {
+      return NextResponse.json(
+        { success: false, message: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // Parse the request body
+    const eventData = await request.json();
+    const {
+      eventName,
+      location,
+      detailsShort,
+      detailsLong,
+      staffId,
+      totalSpaces,
+      startTime,
+      endTime,
+      subjects
+    } = eventData;
+
+    // Validate required fields
+    if (!eventName || !staffId || !totalSpaces || !startTime || !endTime) {
+      return NextResponse.json(
+        { success: false, message: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate dates
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (start >= end) {
+      return NextResponse.json(
+        { success: false, message: 'End time must be after start time' },
+        { status: 400 }
+      );
+    }
+
+    // Connect to database
+    connection = await mysql.createConnection({
+      host: process.env.AIVEN_HOST,
+      port: Number(process.env.AIVEN_PORT),
+      database: process.env.AIVEN_DATABASE,
+      user: process.env.AIVEN_USER,
+      password: process.env.AIVEN_PASSWORD,
+      ssl: {
+        rejectUnauthorized: false
+      },
+      connectTimeout: 10000
+    });
+
+    // Insert the event
+    const [result] = await connection.execute(`
+      INSERT INTO Events (eventName, location, detailsShort, detailsLong, staffAssigned, totalSpaces, startTime, endTime)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [eventName, location, detailsShort, detailsLong, staffId, totalSpaces, startTime, endTime]);
+
+    const eventId = (result as mysql.ResultSetHeader).insertId;
+
+    // Link subjects to the event
+    if (subjects && subjects.length > 0) {
+      for (const subject of subjects) {
+        await connection.execute(`
+          INSERT INTO EventSubjects (eventId, subjectId)
+          VALUES (?, ?)
+        `, [eventId, subject.id]);
+      }
+    }
+
+    await connection.end();
+
+    return NextResponse.json({
+      success: true,
+      message: 'Event created successfully',
+      eventId
+    });
+
+  } catch (error) {
+    console.error('Error creating event:', error);
+    
+    if (connection) {
+      try {
+        await connection.end();
+      } catch (closeError) {
+        console.error('Error closing connection:', closeError);
+      }
+    }
+    
+    return NextResponse.json(
+      { success: false, message: 'Server error creating event' },
+      { status: 500 }
+    );
+  }
+}
