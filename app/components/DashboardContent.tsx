@@ -11,6 +11,25 @@ interface User {
   surname: string;
 }
 
+interface Event {
+  eventId: number;
+  eventName: string;
+  location: string;
+  detailsShort: string;
+  detailsLong: string;
+  studentsSignedUp: number;
+  totalSpaces: number;
+  startTime: string;
+  endTime: string;
+  staffName: string;
+  staffId: number;
+  subjects: { id: number; name: string; code: string; }[];
+  signUpPercentage: number;
+}
+
+type SortField = 'eventId' | 'eventName' | 'location' | 'studentsSignedUp' | 'totalSpaces' | 'startTime' | 'endTime' | 'staffName';
+type SortOrder = 'asc' | 'desc';
+
 export default function DashboardContent() {
   const [user, setUser] = useState<User | null>(null);
   const [isTokenModalOpen, setIsTokenModalOpen] = useState(false);
@@ -18,6 +37,12 @@ export default function DashboardContent() {
   const [tokenExpiration, setTokenExpiration] = useState<string | null>(null);
   const [isGeneratingToken, setIsGeneratingToken] = useState(false);
   const [tokenLifespan, setTokenLifespan] = useState<'1d' | '3d' | '7d'>('7d');
+  
+  // Events table state
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [sortField, setSortField] = useState<SortField>('startTime');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   useEffect(() => {
     // Get user data from the parent ProtectedRoute component
@@ -27,6 +52,95 @@ export default function DashboardContent() {
     }
   }, []);
 
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    setIsLoadingEvents(true);
+    try {
+      const response = await fetch('/api/events', {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.events);
+      } else {
+        console.error('Failed to fetch events');
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const sortedEvents = React.useMemo(() => {
+    return [...events].sort((a, b) => {
+      let aValue: any = a[sortField];
+      let bValue: any = b[sortField];
+      
+      // Handle date sorting
+      if (sortField === 'startTime' || sortField === 'endTime') {
+        aValue = new Date(aValue);
+        bValue = new Date(bValue);
+      }
+      
+      // Handle string sorting
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  }, [events, sortField, sortOrder]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="sort-icon">
+          <path d="M7 10l5 5 5-5z" fill="currentColor" opacity="0.5"/>
+        </svg>
+      );
+    }
+    
+    return sortOrder === 'asc' ? (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="sort-icon">
+        <path d="M7 14l5-5 5 5z" fill="currentColor"/>
+      </svg>
+    ) : (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="sort-icon">
+        <path d="M7 10l5 5 5-5z" fill="currentColor"/>
+      </svg>
+    );
+  };
+
   const handleGenerateToken = async () => {
     if (!user || user.accessLevel !== 'admin') {
       console.error('Only admins can generate tokens');
@@ -35,7 +149,6 @@ export default function DashboardContent() {
 
     setIsGeneratingToken(true);
     try {
-      // Convert lifespan to days for API
       const lifespanDays = tokenLifespan === '1d' ? 1 : tokenLifespan === '3d' ? 3 : 7;
       
       const response = await fetch('/api/auth/generate-token', {
@@ -57,7 +170,6 @@ export default function DashboardContent() {
       } else {
         const errorData = await response.json();
         console.error('Error generating token:', errorData.message);
-        // You could add a toast notification here
       }
     } catch (error) {
       console.error('Error generating token:', error);
@@ -109,26 +221,90 @@ export default function DashboardContent() {
           </div>
         )}
         
-        <div className="dashboard-cards">
-          <div className="dashboard-card">
-            <h3>Upcoming Events</h3>
-            <p>View and manage school events</p>
-          </div>
-          
-          <div className="dashboard-card">
-            <h3>Students</h3>
-            <p>Manage student information</p>
-          </div>
-          
-          <div className="dashboard-card">
-            <h3>Subjects</h3>
-            <p>View and edit subject details</p>
-          </div>
-          
-          <div className="dashboard-card">
-            <h3>Staff</h3>
-            <p>Manage staff accounts</p>
-          </div>
+        {/* Events Table */}
+        <div className="events-section">
+          <h2>Events</h2>
+          {isLoadingEvents ? (
+            <div className="loading-events">Loading events...</div>
+          ) : (
+            <div className="events-table-container">
+              <table className="events-table">
+                <thead>
+                  <tr>
+                    <th onClick={() => handleSort('eventId')}>
+                      ID {renderSortIcon('eventId')}
+                    </th>
+                    <th onClick={() => handleSort('eventName')}>
+                      Event Name {renderSortIcon('eventName')}
+                    </th>
+                    <th onClick={() => handleSort('location')}>
+                      Location {renderSortIcon('location')}
+                    </th>
+                    <th onClick={() => handleSort('staffName')}>
+                      Staff {renderSortIcon('staffName')}
+                    </th>
+                    <th onClick={() => handleSort('studentsSignedUp')}>
+                      Sign-ups {renderSortIcon('studentsSignedUp')}
+                    </th>
+                    <th onClick={() => handleSort('totalSpaces')}>
+                      Total Spaces {renderSortIcon('totalSpaces')}
+                    </th>
+                    <th onClick={() => handleSort('startTime')}>
+                      Start Time {renderSortIcon('startTime')}
+                    </th>
+                    <th onClick={() => handleSort('endTime')}>
+                      End Time {renderSortIcon('endTime')}
+                    </th>
+                    <th>Subjects</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedEvents.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="no-events">No events found</td>
+                    </tr>
+                  ) : (
+                    sortedEvents.map((event) => (
+                      <tr key={event.eventId} className="event-row">
+                        <td>{event.eventId}</td>
+                        <td className="event-name-cell">
+                          <div className="event-name">{event.eventName}</div>
+                          {event.detailsShort && (
+                            <div className="event-details">{event.detailsShort}</div>
+                          )}
+                        </td>
+                        <td>{event.location}</td>
+                        <td>{event.staffName}</td>
+                        <td>
+                          <div className="signup-info">
+                            <span>{event.studentsSignedUp}</span>
+                            <div className="progress-bar">
+                              <div 
+                                className="progress-fill" 
+                                style={{ width: `${event.signUpPercentage}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td>{event.totalSpaces}</td>
+                        <td>{formatDate(event.startTime)}</td>
+                        <td>{formatDate(event.endTime)}</td>
+                        <td>
+                          <div className="subjects-list">
+                            {event.subjects.map((subject) => (
+                              <span key={subject.id} className="subject-tag">
+                                {subject.code}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
       
