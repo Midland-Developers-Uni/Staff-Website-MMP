@@ -2,6 +2,33 @@ import { NextResponse } from 'next/server';
 import * as mysql from 'mysql2/promise';
 import * as argon2 from 'argon2';
 
+// Define interfaces for our data types
+interface StaffMember {
+  id: number;
+  email: string;
+  firstname: string;
+  surname: string;
+  password: string;
+  accessLevel: 'admin' | 'staff';
+  created_at: string;
+  updated_at: string;
+  last_login: string | null;
+  [key: string]: unknown; // Allow for additional properties
+}
+
+interface Token {
+  id: number;
+  token: string;
+  email: string | null;
+  created_by: number | null;
+  created_at: string;
+  expires_at: string;
+  used: number; // MySQL returns 0/1 for booleans
+  used_by: string | null;
+  used_at: string | null;
+  [key: string]: unknown; // Allow for additional properties
+}
+
 export async function POST(request: Request) {
   let connection;
   
@@ -43,7 +70,8 @@ export async function POST(request: Request) {
       [email]
     );
     
-    if ((existingStaff as any[]).length > 0) {
+    const staffRows = existingStaff as StaffMember[];
+    if (staffRows.length > 0) {
       await connection.end();
       return NextResponse.json(
         { success: false, message: 'Email already in use' }, 
@@ -58,7 +86,7 @@ export async function POST(request: Request) {
       [token]
     );
     
-    const tokens = tokenRows as any[];
+    const tokens = tokenRows as Token[];
     
     // If token doesn't exist at all
     if (tokens.length === 0) {
@@ -71,8 +99,8 @@ export async function POST(request: Request) {
     
     const tokenData = tokens[0];
     
-    // Check if token has already been used
-    if (tokenData.used) {
+    // Check if token has already been used (MySQL returns 0/1 for booleans)
+    if (tokenData.used === 1) {
       await connection.end();
       return NextResponse.json(
         { success: false, message: 'This token has already been used' }, 
@@ -103,7 +131,8 @@ export async function POST(request: Request) {
       [email, firstname, surname, hashedPassword]
     );
     
-    const insertId = (result as any).insertId;
+    const insertResult = result as mysql.ResultSetHeader;
+    const insertId = insertResult.insertId;
     
     // Mark the token as used and record who used it
     await connection.execute(
@@ -122,8 +151,9 @@ export async function POST(request: Request) {
     await connection.end();
     
     // Exclude password from response
-    const staff = (newStaff as any[])[0];
-    const { password: _, ...staffWithoutPassword } = staff;
+    const staff = (newStaff as StaffMember[])[0];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: passwordField, ...staffWithoutPassword } = staff;
     
     return NextResponse.json({ 
       success: true, 

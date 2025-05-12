@@ -2,6 +2,30 @@ import { NextResponse } from 'next/server';
 import * as mysql from 'mysql2/promise';
 import * as argon2 from 'argon2';
 
+// Define interfaces for our data types
+interface StaffMember {
+  id: number;
+  email: string;
+  firstname: string;
+  surname: string;
+  password: string;
+  accessLevel: 'admin' | 'staff';
+  created_at: string;
+  updated_at: string;
+  last_login: string | null;
+  [key: string]: unknown; // Allow for additional properties
+}
+
+interface Subject {
+  id: number;
+  name: string;
+  code: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  [key: string]: unknown; // Allow for additional properties
+}
+
 export async function POST(request: Request) {
   try {
     // Parse the request body
@@ -26,11 +50,13 @@ export async function POST(request: Request) {
     );
     
     // Check if staff exists and password matches
-    const staff = (rows as any[])[0];
-    if (!staff) {
+    const staffRows = rows as StaffMember[];
+    if (staffRows.length === 0) {
       await connection.end();
       return NextResponse.json({ success: false, message: 'Invalid email or password' }, { status: 401 });
     }
+    
+    const staff = staffRows[0];
     
     // Verify password using Argon2
     const validPassword = await argon2.verify(staff.password, password);
@@ -54,8 +80,9 @@ export async function POST(request: Request) {
     
     await connection.end();
     
-    // Exclude password from response
-    const { password: _, ...staffWithoutPassword } = staff;
+    // Exclude password from response (using rest operator)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: passwordField, ...staffWithoutPassword } = staff;
     
     return NextResponse.json({ 
       success: true, 
