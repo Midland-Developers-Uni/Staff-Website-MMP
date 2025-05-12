@@ -16,16 +16,6 @@ interface StaffMember {
   [key: string]: unknown; // Allow for additional properties
 }
 
-interface Subject {
-  id: number;
-  name: string;
-  code: string | null;
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-  [key: string]: unknown; // Allow for additional properties
-}
-
 export async function POST(request: Request) {
   try {
     // Parse the request body

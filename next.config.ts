@@ -11,11 +11,11 @@ const nextConfig: NextConfig = {
       // You can adjust these values as needed
       bodySizeLimit: '2mb',
       allowedOrigins: ['*']
-    },
-    
-    // Tell Next.js to handle mysql2 as a server-only package
-    serverComponentsExternalPackages: ["mysql2"]
+    }
   },
+  
+  // Tell Next.js to handle mysql2 as a server-only package (updated property name)
+  serverExternalPackages: ["mysql2"],
   
   // Additional settings to help with API routes and database connections
   webpack: (config, { isServer }) => {
