@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import TokenGenerationModal from "../components/TokenGenerationModal";
 import EventModal from "../components/EventModal";
 import "./dashboard.css";
+import { Event, EventFormData } from "../types/events";
 
 interface User {
   userId: number;
@@ -10,22 +11,6 @@ interface User {
   accessLevel: string;
   firstname: string;
   surname: string;
-}
-
-interface Event {
-  eventId: number;
-  eventName: string;
-  location: string;
-  detailsShort: string;
-  detailsLong: string;
-  studentsSignedUp: number;
-  totalSpaces: number;
-  startTime: string;
-  endTime: string;
-  staffName: string;
-  staffId: number;
-  subjects: { id: number; name: string; code: string; }[];
-  signUpPercentage?: number; // Make this optional
 }
 
 type SortField = 'eventId' | 'eventName' | 'location' | 'studentsSignedUp' | 'totalSpaces' | 'startTime' | 'endTime' | 'staffName';
@@ -202,7 +187,7 @@ export default function DashboardContent() {
     setIsEventModalOpen(true);
   };
 
-  const handleSaveEvent = async (eventData: Event) => {
+  const handleSaveEvent = async (eventData: EventFormData) => {
     try {
       let url = '/api/events';
       let method = 'POST';

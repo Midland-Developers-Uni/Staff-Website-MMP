@@ -1,40 +1,13 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import "./eventModal.css";
-
-// Define interfaces
-interface Event {
-  eventId?: number;
-  eventName: string;
-  location: string;
-  detailsShort: string;
-  detailsLong: string;
-  studentsSignedUp?: number;
-  totalSpaces: number;
-  startTime: string;
-  endTime: string;
-  staffId: number;
-  staffName?: string;
-  subjects: Subject[];
-}
-
-interface Staff {
-  id: number;
-  firstname: string;
-  surname: string;
-}
-
-interface Subject {
-  id: number;
-  name: string;
-  code: string;
-}
+import { Event, EventFormData, Staff, Subject } from "../types/events";
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
   event?: Event;
-  onSave: (event: Event) => Promise<void>;
+  onSave: (event: EventFormData) => Promise<void>;
   onDelete?: (eventId: number) => Promise<void>;
   mode: 'create' | 'edit' | 'view';
 }
@@ -47,7 +20,7 @@ export default function EventModal({
   onDelete,
   mode 
 }: EventModalProps) {
-  const [formData, setFormData] = useState<Event>({
+  const [formData, setFormData] = useState<EventFormData>({
     eventName: '',
     location: '',
     detailsShort: '',
@@ -70,7 +43,17 @@ export default function EventModal({
     if (isOpen) {
       fetchStaffAndSubjects();
       if (event) {
-        setFormData(event);
+        setFormData({
+          eventName: event.eventName,
+          location: event.location,
+          detailsShort: event.detailsShort,
+          detailsLong: event.detailsLong,
+          totalSpaces: event.totalSpaces,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          staffId: event.staffId,
+          subjects: event.subjects
+        });
         setSelectedSubjects(event.subjects.map(s => s.id));
       } else {
         // Reset form for new event
@@ -140,7 +123,7 @@ export default function EventModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const eventData = {
+      const eventData: EventFormData = {
         ...formData,
         subjects: availableSubjects.filter(s => selectedSubjects.includes(s.id))
       };
@@ -319,15 +302,15 @@ export default function EventModal({
                 </div>
               </div>
 
-              {isViewMode && formData.studentsSignedUp !== undefined && (
+              {isViewMode && event?.studentsSignedUp !== undefined && (
                 <div className="form-group">
                   <label>Students Signed Up</label>
                   <div className="signup-display">
-                    {formData.studentsSignedUp} / {formData.totalSpaces} students
+                    {event.studentsSignedUp} / {event.totalSpaces} students
                     <div className="progress-bar">
                       <div 
                         className="progress-fill" 
-                        style={{ width: `${(formData.studentsSignedUp / formData.totalSpaces) * 100}%` }}
+                        style={{ width: `${(event.studentsSignedUp / event.totalSpaces) * 100}%` }}
                       />
                     </div>
                   </div>
