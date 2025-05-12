@@ -22,6 +22,11 @@ function generateStaffToken(): string {
   return `${generateRandomLetters(4)}-${generateRandomLetters(4)}-${generateRandomLetters(4)}-${generateRandomLetters(4)}`;
 }
 
+// Define interface for better type safety
+interface TokenRow {
+  id: number;
+}
+
 export async function POST(request: NextRequest) {
   let connection;
   
@@ -40,7 +45,7 @@ export async function POST(request: NextRequest) {
     let decoded;
     try {
       decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
-    } catch (jwtError) {
+    } catch {
       return NextResponse.json(
         { success: false, message: 'Invalid token' },
         { status: 401 }
@@ -91,7 +96,7 @@ export async function POST(request: NextRequest) {
         [staffToken]
       );
       
-      tokenExists = (existingTokens as Array<any>).length > 0;
+      tokenExists = (existingTokens as TokenRow[]).length > 0;
     }
 
     // Calculate expiration date

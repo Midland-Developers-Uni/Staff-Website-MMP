@@ -88,8 +88,8 @@ export default function DashboardContent() {
 
   const sortedEvents = React.useMemo(() => {
     return [...events].sort((a, b) => {
-      let aValue: any = a[sortField];
-      let bValue: any = b[sortField];
+      let aValue: string | number | Date = a[sortField];
+      let bValue: string | number | Date = b[sortField];
       
       // Handle date sorting
       if (sortField === 'startTime' || sortField === 'endTime') {

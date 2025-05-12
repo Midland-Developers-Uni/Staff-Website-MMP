@@ -5,6 +5,29 @@ import * as jwt from 'jsonwebtoken';
 // JWT secret from environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'midland-developers-secret-key';
 
+// Define interfaces for better type safety
+interface EventRow {
+  eventId: number;
+  eventName: string;
+  location: string;
+  detailsShort: string;
+  detailsLong: string;
+  studentsSignedUp: number;
+  totalSpaces: number;
+  startTime: string;
+  endTime: string;
+  staffName: string;
+  staffId: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Subject {
+  id: number;
+  name: string;
+  code: string;
+}
+
 export async function GET(request: NextRequest) {
   let connection;
   
@@ -20,10 +43,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify the token
-    let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
-    } catch (jwtError) {
+      jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+    } catch {
       return NextResponse.json(
         { success: false, message: 'Invalid token' },
         { status: 401 }
@@ -66,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     // Get subjects for each event
     const eventsWithSubjects = [];
-    for (const event of events as any[]) {
+    for (const event of events as EventRow[]) {
       const [subjects] = await connection.query(`
         SELECT sub.id, sub.name, sub.code
         FROM Subjects sub
@@ -76,7 +98,7 @@ export async function GET(request: NextRequest) {
       
       eventsWithSubjects.push({
         ...event,
-        subjects: subjects,
+        subjects: subjects as Subject[],
         // Calculate percentage for progress bar
         signUpPercentage: event.totalSpaces > 0 ? Math.round((event.studentsSignedUp / event.totalSpaces) * 100) : 0
       });

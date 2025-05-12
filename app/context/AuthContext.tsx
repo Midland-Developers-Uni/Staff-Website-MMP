@@ -82,7 +82,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
   
-  // Function to handle user activity
+  // Function to handle logout - moved earlier to fix dependency issue
+  const logout = useCallback(() => {
+    console.log('Logging out...');
+    isLoggingOut.current = true;
+    
+    // Clear any timers
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+    
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    
+    if (tokenRefreshIntervalRef.current) {
+      clearInterval(tokenRefreshIntervalRef.current);
+      tokenRefreshIntervalRef.current = null;
+    }
+    
+    // Call logout API
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    }).catch(error => {
+      console.error('Logout API error:', error);
+    });
+    
+    // Reset state
+    setIsAuthenticated(false);
+    setUser(null);
+    setShowInactivityModal(false);
+    setIsLoading(false); // Ensure loading is false after logout
+    
+    // Redirect to login page only if on a protected route
+    if (isProtectedRoute(window.location.pathname)) {
+      router.push('/');
+    }
+    
+    // Small delay to reset logout flag
+    setTimeout(() => {
+      isLoggingOut.current = false;
+    }, 100);
+  }, [router, isProtectedRoute]);
+  
+  // Function to handle user activity - now logout is defined above
   const handleUserActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
     
@@ -124,7 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }, 1000);
       }, INACTIVITY_TIMEOUT);
     }
-  }, [showInactivityModal, isAuthenticated]);
+  }, [showInactivityModal, isAuthenticated, logout]);
   
   // Function to handle staying logged in
   const handleStayLoggedIn = async () => {
@@ -212,55 +261,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
   };
-  
-  // Function to handle logout
-  const logout = useCallback(() => {
-    console.log('Logging out...');
-    isLoggingOut.current = true;
-    
-    // Clear any timers
-    if (inactivityTimerRef.current) {
-      clearTimeout(inactivityTimerRef.current);
-      inactivityTimerRef.current = null;
-    }
-    
-    if (countdownTimerRef.current) {
-      clearInterval(countdownTimerRef.current);
-      countdownTimerRef.current = null;
-    }
-    
-    if (tokenRefreshIntervalRef.current) {
-      clearInterval(tokenRefreshIntervalRef.current);
-      tokenRefreshIntervalRef.current = null;
-    }
-    
-    // Call logout API
-    fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    }).catch(error => {
-      console.error('Logout API error:', error);
-    });
-    
-    // Reset state
-    setIsAuthenticated(false);
-    setUser(null);
-    setShowInactivityModal(false);
-    setIsLoading(false); // Ensure loading is false after logout
-    
-    // Redirect to login page only if on a protected route
-    if (isProtectedRoute(window.location.pathname)) {
-      router.push('/');
-    }
-    
-    // Small delay to reset logout flag
-    setTimeout(() => {
-      isLoggingOut.current = false;
-    }, 100);
-  }, [router, isProtectedRoute]);
   
   // Check authentication status on component mount
   useEffect(() => {
