@@ -1,14 +1,65 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./topbarStyles.css";
 import { useTheme } from "../context/ThemeContext";
-import { useAuth } from "../context/AuthContext";
+import { useRouter, usePathname } from "next/navigation";
 
-// Removed empty interface since no props are needed
 const Topbar: React.FC = () => {
     const { darkMode, toggleDarkMode } = useTheme();
-    const { isAuthenticated, logout } = useAuth();
+    const router = useRouter();
+    const pathname = usePathname();
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const modeClass = darkMode ? "topbar-dark" : "topbar-light";
+
+    // Function to check authentication
+    const checkAuth = async () => {
+        try {
+            const response = await fetch('/api/auth/verify', {
+                method: 'GET',
+                credentials: 'include',
+            });
+            setIsAuthenticated(response.ok);
+        } catch {
+            setIsAuthenticated(false);
+        }
+    };
+
+    // Check authentication on mount
+    useEffect(() => {
+        checkAuth();
+    }, []);
+
+    // Check authentication whenever the route changes
+    useEffect(() => {
+        checkAuth();
+    }, [pathname]);
+
+    // Also check authentication periodically to catch manual logouts
+    useEffect(() => {
+        const interval = setInterval(checkAuth, 30000); // Check every 30 seconds
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleLogout = async () => {
+        setIsLoading(true);
+        try {
+            await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include',
+            });
+            setIsAuthenticated(false);
+            router.push('/');
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDashboardClick = () => {
+        router.push('/dashboard');
+    };
 
     return (
         <header className={`topbar ${modeClass}`}>
@@ -21,16 +72,18 @@ const Topbar: React.FC = () => {
                 <nav>
                     {isAuthenticated ? (
                         <>
-                            <a href="/dashboard" className="nav-link">
+                            <button onClick={handleDashboardClick} className="nav-link" disabled={isLoading}>
                                 Dashboard
-                            </a>
-                            <button onClick={logout} className="nav-link logout-link">
-                                Logout
+                            </button>
+                            <button onClick={handleLogout} className="nav-link logout-link" disabled={isLoading}>
+                                {isLoading ? 'Logging out...' : 'Logout'}
                             </button>
                         </>
                     ) : null}
                 </nav>
-                <button onClick={toggleDarkMode} className="nav-link">Toggle Dark Mode</button>
+                <button onClick={toggleDarkMode} className="nav-link">
+                    Toggle Dark Mode
+                </button>
             </div>
         </header>
     );

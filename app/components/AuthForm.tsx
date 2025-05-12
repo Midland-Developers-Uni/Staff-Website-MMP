@@ -1,13 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
-import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 import "./authForm.css";
 
 const AuthForm: React.FC = () => {
   const { darkMode } = useTheme();
-  const { isAuthenticated, isLoading, login } = useAuth();
   const router = useRouter();
   
   const [formData, setFormData] = useState({
@@ -31,13 +29,6 @@ const AuthForm: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && !isLoading) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, router]);
 
   // Special handler for token field to format as xxxx-xxxx-xxxx-xxxx
   const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,6 +153,7 @@ const AuthForm: React.FC = () => {
       try {
         if (isSignup) {
           // Handle signup
+          console.log('Attempting registration...');
           const response = await fetch('/api/auth/register', {
             method: 'POST',
             headers: {
@@ -183,23 +175,31 @@ const AuthForm: React.FC = () => {
             throw new Error(data.message || 'Registration failed');
           }
           
-          // After successful registration, login
-          const loginResult = await login(formData.email, formData.password);
-          
-          if (!loginResult.success) {
-            throw new Error(loginResult.message || 'Login after registration failed');
-          }
-          
-          // Redirect will happen in the useEffect watching isAuthenticated
+          console.log('Registration successful, redirecting to dashboard...');
+          router.push('/dashboard');
         } else {
-          // Handle login using the context
-          const result = await login(formData.email, formData.password);
+          // Handle login
+          console.log('Attempting login...');
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              email: formData.email,
+              password: formData.password,
+            }),
+          });
           
-          if (!result.success) {
-            throw new Error(result.message || 'Authentication failed');
+          const data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.message || 'Authentication failed');
           }
           
-          // Redirect will happen in the useEffect watching isAuthenticated
+          console.log('Login successful, redirecting to dashboard...');
+          router.push('/dashboard');
         }
       } catch (error) {
         console.error('Authentication error:', error);
@@ -234,11 +234,6 @@ const AuthForm: React.FC = () => {
       form: ""
     });
   };
-
-  // If authentication is loading or already authenticated, show loading
-  if (isLoading || (isAuthenticated && !isFormSubmitting)) {
-    return <div className="auth-loading">Loading...</div>;
-  }
 
   return (
     <div className={`auth-container ${darkMode ? "dark" : "light"}`}>

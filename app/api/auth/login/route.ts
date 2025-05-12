@@ -14,20 +14,33 @@ interface StaffMember {
   created_at: string;
   updated_at: string;
   last_login: string | null;
-  [key: string]: unknown; // Allow for additional properties
+  [key: string]: unknown;
 }
 
 // JWT secret from environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'midland-developers-secret-key';
-// JWT expiration time - 5 minutes (to allow for the 4-minute inactivity + 1-minute countdown)
-const JWT_EXPIRATION = '5m';
+// JWT expiration time - 24 hours
+const JWT_EXPIRATION = '24h';
 
 export async function POST(request: Request) {
   let connection;
   
   try {
+    console.log('Login route called');
+    
     // Parse the request body
     const { email, password } = await request.json();
+    
+    // Basic validation
+    if (!email || !password) {
+      console.log('Missing email or password');
+      return NextResponse.json(
+        { success: false, message: 'Email and password are required' },
+        { status: 400 }
+      );
+    }
+    
+    console.log('Attempting login for:', email);
     
     // Create connection with proper options
     connection = await mysql.createConnection({
@@ -42,6 +55,8 @@ export async function POST(request: Request) {
       connectTimeout: 10000 // 10 seconds
     });
     
+    console.log('Database connection established');
+    
     // Query to authenticate staff
     const [rows] = await connection.execute(
       'SELECT * FROM Staff WHERE email = ? LIMIT 1',
@@ -52,16 +67,19 @@ export async function POST(request: Request) {
     const staffRows = rows as StaffMember[];
     if (staffRows.length === 0) {
       await connection.end();
+      console.log('User not found');
       return NextResponse.json({ success: false, message: 'Invalid email or password' }, { status: 401 });
     }
     
     const staff = staffRows[0];
+    console.log('User found, verifying password');
     
     // Verify password using Argon2
     try {
       const validPassword = await argon2.verify(staff.password, password);
       if (!validPassword) {
         await connection.end();
+        console.log('Invalid password');
         return NextResponse.json({ success: false, message: 'Invalid email or password' }, { status: 401 });
       }
     } catch (verifyError) {
@@ -72,6 +90,8 @@ export async function POST(request: Request) {
         message: 'Error verifying credentials' 
       }, { status: 500 });
     }
+    
+    console.log('Password verified successfully');
     
     // Update last login time
     await connection.execute(
@@ -87,6 +107,7 @@ export async function POST(request: Request) {
     `, [staff.id]);
     
     await connection.end();
+    console.log('Database operations completed');
     
     // Exclude password from response and JWT payload
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -100,11 +121,15 @@ export async function POST(request: Request) {
         firstname: staff.firstname,
         surname: staff.surname,
         accessLevel: staff.accessLevel,
-        // Add any other data you want in the token
+        // Add issued at and custom claim for verification
+        iat: Math.floor(Date.now() / 1000),
+        custom: 'midland-staff-token'
       },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRATION }
     );
+    
+    console.log('JWT token generated:', token.substring(0, 50) + '...');
     
     // Create the response
     const response = NextResponse.json({ 
@@ -114,15 +139,22 @@ export async function POST(request: Request) {
       token
     });
     
-    // Set the cookie in the response
-    response.cookies.set({
-      name: 'auth_token',
-      value: token,
-      maxAge: 5 * 60, // 5 minutes
+    console.log('Setting auth_token cookie...');
+    
+    // Set the cookie with explicit settings
+    response.cookies.set('auth_token', token, {
+      maxAge: 24 * 60 * 60, // 24 hours
       path: '/',
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict'
+      sameSite: 'lax'
+    });
+    
+    // Also try setting with different approach for better compatibility
+    response.headers.set('Set-Cookie', `auth_token=${token}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly; SameSite=Lax${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+    
+    console.log('Cookie should be set. Response headers:', {
+      'set-cookie': response.headers.get('set-cookie')
     });
     
     return response;

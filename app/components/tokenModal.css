@@ -1,0 +1,259 @@
+.token-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.token-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-in-out;
+}
+
+body.dark .token-modal {
+  background: #1a1a1a;
+  color: white;
+}
+
+.token-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+body.dark .token-modal-header {
+  border-bottom: 1px solid #333;
+}
+
+.token-modal-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #2563eb;
+}
+
+body.dark .token-modal-header h3 {
+  color: #60a5fa;
+}
+
+.token-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.token-modal-close:hover {
+  background: #f3f4f6;
+}
+
+body.dark .token-modal-close:hover {
+  background: #374151;
+}
+
+.token-modal-content {
+  padding: 20px;
+}
+
+.token-display, .token-expiry {
+  margin-bottom: 20px;
+}
+
+.token-display label, .token-expiry label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #374151;
+}
+
+body.dark .token-display label,
+body.dark .token-expiry label {
+  color: #d1d5db;
+}
+
+.token-value {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  word-spacing: 0.5rem;
+  letter-spacing: 0.1rem;
+}
+
+.token-value:hover {
+  background: #f1f5f9;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+body.dark .token-value {
+  background: #262626;
+  border-color: #404040;
+  color: #60a5fa;
+}
+
+body.dark .token-value:hover {
+  background: #2a2a2a;
+  border-color: #60a5fa;
+}
+
+.expiry-value {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 500;
+}
+
+body.dark .expiry-value {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.token-instructions {
+  background: #f0f9ff;
+  border: 1px solid #0284c7;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 20px;
+}
+
+body.dark .token-instructions {
+  background: rgba(14, 165, 233, 0.1);
+  border-color: #0284c7;
+}
+
+.token-instructions p {
+  margin: 0 0 10px 0;
+  color: #0284c7;
+  font-weight: 600;
+}
+
+body.dark .token-instructions p {
+  color: #0ea5e9;
+}
+
+.token-instructions ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.token-instructions li {
+  margin-bottom: 5px;
+  color: #374151;
+}
+
+body.dark .token-instructions li {
+  color: #d1d5db;
+}
+
+.token-modal-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+body.dark .token-modal-footer {
+  border-top: 1px solid #333;
+}
+
+.token-modal-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.token-modal-button.primary {
+  background: #2563eb;
+  color: white;
+}
+
+.token-modal-button.primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.token-modal-button.secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.token-modal-button.secondary:hover {
+  background: #e5e7eb;
+}
+
+body.dark .token-modal-button.secondary {
+  background: #374151;
+  color: #d1d5db;
+  border-color: #4b5563;
+}
+
+body.dark .token-modal-button.secondary:hover {
+  background: #4b5563;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .token-modal {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .token-modal-footer {
+    flex-direction: column;
+  }
+  
+  .token-modal-button {
+    width: 100%;
+  }
+}
