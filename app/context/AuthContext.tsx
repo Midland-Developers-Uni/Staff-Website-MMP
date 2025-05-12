@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { getCookie, setCookie, deleteCookie } from "cookies-next";
+import { getCookie } from "cookies-next"; // Removed unused imports
 import InactivityModal from "../components/InactivityModal";
 
 // Constants
@@ -15,7 +15,7 @@ interface User {
   accessLevel: string;
   firstname: string;
   surname: string;
-  [key: string]: any;
+  [key: string]: unknown; // Using unknown instead of any
 }
 
 interface AuthContextType {
@@ -327,7 +327,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       clearInterval(tokenRefreshInterval);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, handleUserActivity]); // Added handleUserActivity to dependencies
   
   // Create the context value object
   const contextValue: AuthContextType = {

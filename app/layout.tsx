@@ -9,9 +9,6 @@ export default function RootLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const options = {
-        loggedIn: false
-    }
     return (
         <html lang="en">
             <head />
@@ -19,7 +16,7 @@ export default function RootLayout({
                 <ThemeProvider>
                     <AuthProvider>
                         <ClientThemeSetter/>
-                        <Topbar options={options} />
+                        <Topbar />
                         {children}
                     </AuthProvider>
                 </ThemeProvider>
