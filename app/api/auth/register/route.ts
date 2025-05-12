@@ -61,7 +61,8 @@ export async function POST(request: Request) {
       password: process.env.AIVEN_PASSWORD,
       ssl: {
         rejectUnauthorized: false // Allow self-signed certificates
-      }
+      },
+      connectTimeout: 10000 // 10 seconds
     });
     
     // Check if email already exists
